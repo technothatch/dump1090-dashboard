@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta
+      name="description"
+      content="Local web UI for dump1090 / readsb — live aircraft table, radar map and detail drawer."
+    />
+    <title>dump1090-dashboard</title>
+    <script>
+      // Apply the persisted theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var stored = localStorage.getItem("dump1090-dashboard:theme");
+          if (stored === "dark" || stored === "light") {
+            document.documentElement.dataset.theme = stored;
+          } else if (window.matchMedia && !window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            document.documentElement.dataset.theme = "light";
+          }
+        } catch (error) {
+          /* storage blocked — keep the markup default */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <h1>dump1090<span class="brand-accent">-dashboard</span></h1>
+        <p class="subtitle">local dump1090 / readsb traffic</p>
+      </div>
+      <div class="topbar-right">
+        <span id="status-pill" class="pill pill-connecting" role="status" aria-live="polite">connecting</span>
+        <span id="counts" class="counts"></span>
+        <button id="theme-toggle" type="button" class="ghost-button" aria-label="Toggle colour theme">
+          Theme
+        </button>
+      </div>
+    </header>
+
+    <section class="controls">
+      <label class="filter-label" for="filter">Filter</label>
+      <input
+        id="filter"
+        type="search"
+        placeholder="hex, callsign, type, squawk… (press /)"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <span id="poll-info" class="poll-info"></span>
+    </section>
+
+    <main class="layout">
+      <section class="pane map-pane" aria-label="Radar">
+        <div class="pane-head">
+          <h2>Radar</h2>
+          <span id="source-info" class="pane-note"></span>
+        </div>
+        <svg id="map" viewBox="0 0 600 600" role="img" aria-label="Receiver-centred radar plot"></svg>
+        <p id="map-note" class="pane-note" hidden></p>
+      </section>
+
+      <section class="pane table-pane" aria-label="Aircraft table">
+        <div class="pane-head">
+          <h2>Aircraft</h2>
+          <span id="receiver-info" class="pane-note"></span>
+        </div>
+        <div class="table-scroll" tabindex="-1">
+          <table id="aircraft-table">
+            <thead>
+              <tr>
+                <th data-sort="flight" scope="col">Flight</th>
+                <th data-sort="hex" scope="col">Hex</th>
+                <th scope="col">Type</th>
+                <th data-sort="alt" scope="col">Alt</th>
+                <th data-sort="gs" scope="col">GS</th>
+                <th data-sort="track" scope="col">Track</th>
+                <th data-sort="squawk" scope="col">Squawk</th>
+                <th data-sort="dst" scope="col">Dist</th>
+                <th data-sort="rssi" scope="col">RSSI</th>
+                <th data-sort="messages" scope="col">Msgs</th>
+                <th data-sort="seen" scope="col">Seen</th>
+              </tr>
+            </thead>
+            <tbody id="aircraft-body"></tbody>
+          </table>
+        </div>
+        <p id="empty-note" class="empty-note" hidden></p>
+      </section>
+    </main>
+
+    <aside id="drawer" class="drawer" hidden aria-label="Aircraft detail">
+      <div class="drawer-head">
+        <h2 id="drawer-title">Aircraft</h2>
+        <button id="drawer-close" type="button" class="ghost-button" aria-label="Close detail drawer">
+          Close
+        </button>
+      </div>
+      <dl id="drawer-fields" class="drawer-fields"></dl>
+    </aside>
+
+    <footer class="footer">
+      <span>ADS-B data is public by design — treat the feed as untrusted input.</span>
+      <span>dump1090 / readsb ecosystem</span>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

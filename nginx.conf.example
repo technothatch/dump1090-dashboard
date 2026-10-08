@@ -1,0 +1,62 @@
+# dump1090-dashboard — nginx configuration example
+#
+# The upstream below is `http://127.0.0.1:8080`: dump1090-fa and readsb both
+# serve /data/*.json on port 8080 out of the box (the --write-json HTTP
+# server). Change it to reach a decoder on another host. The bundled
+# Dockerfile rewrites it at build time with --build-arg DECODER_UPSTREAM=...
+#
+# Deployment shapes:
+#   1. Container / standalone box: use this file as-is (root points at the
+#      built dist/ directory, /data/ is proxied to the decoder).
+#   2. Same nginx as tar1090: copy only the `location /data/` block (or the
+#      on-disk variant below) into the server block that already serves
+#      tar1090's html — the dashboard then reads /data/ relatively, which is
+#      the default, so no `?data=` parameter is needed.
+
+server {
+    listen 80;
+    server_name _;
+
+    # Where `npm run build` put the bundle (the Docker image uses
+    # /usr/share/nginx/html; adjust for a bare-metal checkout).
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # Single-page app fallback.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Vite emits content-hashed filenames — cache them hard.
+    location /assets/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Live decoder JSON: never cached, no response buffering so the table
+    # updates as soon as the decoder writes the file.
+    location /data/ {
+        proxy_pass http://127.0.0.1:8080/data/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_buffering off;
+        proxy_read_timeout 60s;
+        add_header Cache-Control "no-store";
+    }
+
+    # Alternative for the tar1090 layout: nginx reads the decoder's JSON
+    # straight off disk instead of proxying (--write-json target):
+    #
+    # location /data/ {
+    #     alias /run/readsb/;            # or /run/dump1090-fa/
+    #     default_type application/json;
+    #     add_header Cache-Control "no-store";
+    # }
+    #
+    # (If your tar1090 install already exposes /data/, keep that block and
+    # drop this one entirely — the dashboard's default URL matches.)
+}

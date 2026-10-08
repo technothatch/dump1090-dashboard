@@ -1,0 +1,14 @@
+# Build context exclusions — the image only needs package manifests, Vite
+# config, index.html and src/.
+node_modules
+dist
+coverage
+tests
+.git
+.github
+*.md
+.editorconfig
+.gitattributes
+.gitignore
+.dockerignore
+Dockerfile
